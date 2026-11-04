@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahinio Expense Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen pb-24 max-w-md mx-auto relative bg-slate-100 border-x border-slate-200 shadow-2xl">
+
+    <!-- TOP NAV HEADER -->
+    <header class="bg-brand-900 text-white px-5 pt-6 pb-4 sticky top-0 z-20 rounded-b-3xl shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center gap-2.5">
+                <!-- Profile Avatar Image Button -->
+                <div onclick="openProfileModal()" class="relative cursor-pointer group">
+                    <img id="headerProfileAvatar"  alt="Profile" class="w-10 h-10 rounded-full border-2 border-white/30 object-cover shadow-inner group-hover:opacity-90">
+                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-brand-900"></div>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide flex items-center gap-1.5">
+                        <span id="userDisplayName">Mahinio User</span>
+                    </h1>
+                    <p class="text-[10px] text-blue-200">Personal Wealth OS</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="switchTab('analytics')" class="p-2 rounded-full bg-white/10 hover:bg-white/20 transition flex items-center gap-1 text-xs text-blue-100 border border-white/10" title="View Analytics">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                </button>
+                <button onclick="toggleDriveModal()" class="p-2 rounded-full bg-white/10 hover:bg-white/20 transition flex items-center gap-1.5 text-xs text-blue-100 border border-white/10">
+                    <i data-lucide="cloud" class="w-4 h-4"></i>
+                    <span id="syncStatus">Sync</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- TOTAL BALANCE HERO CARD -->
+        <div class="bg-gradient-to-br from-brand-700 to-brand-900 rounded-2xl p-4 border border-white/10 shadow-inner">
+            <div class="flex justify-between items-center">
+                <span class="text-xs text-blue-200 font-medium">Net Total Balance</span>
+                <span id="accountCountLabel" class="text-[10px] bg-white/10 text-blue-100 px-2 py-0.5 rounded-full font-semibold">5 Accounts</span>
+            </div>
+            <div id="netBalanceDisplay" class="text-3xl font-extrabold tracking-tight mt-1 text-emerald-400 transition-colors">
+                ৳ 0.00
+            </div>
+            <button onclick="openCategoryModal()" class="mt-4 w-full flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-white/10 px-3.5 py-3 text-left shadow-sm transition hover:bg-white/15 active:scale-[0.99]">
+                <span class="flex items-center gap-3">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-white">
+                        <i data-lucide="tags" class="w-4 h-4"></i>
+                    </span>
+                    <span class="flex flex-col">
+                        <span class="text-xs font-bold text-white">Manage Categories</span>
+                        <span class="text-[10px] text-blue-200">Customize your income & expense labels</span>
+                    </span>
+                </span>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-blue-200"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN BODY CONTENT -->
+    <main class="p-4 space-y-5">
+
+        <!-- TAB NAVIGATION -->
+        <div class="flex bg-slate-200/70 p-1 rounded-xl text-xs font-semibold text-slate-600 overflow-x-auto hide-scrollbar">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="flex-1 py-2 px-3 rounded-lg text-center bg-white text-brand-900 shadow-sm transition whitespace-nowrap">Overview</button>
+            <button onclick="switchTab('income')" id="tab-income" class="flex-1 py-2 px-3 rounded-lg text-center hover:text-slate-900 transition whitespace-nowrap">Money Added</button>
+            <button onclick="switchTab('accounts')" id="tab-accounts" class="flex-1 py-2 px-3 rounded-lg text-center hover:text-slate-900 transition whitespace-nowrap">Accounts</button>
+            <button onclick="switchTab('debts')" id="tab-debts" class="flex-1 py-2 px-3 rounded-lg text-center hover:text-slate-900 transition whitespace-nowrap">Borrow/Lend</button>
+        </div>
+
+        <!-- 1. DASHBOARD VIEW -->
+        <section id="view-dashboard" class="space-y-4">
+            <!-- QUICK ACCOUNTS HORIZONTAL CAROUSEL -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-bold text-slate-800 text-sm">Financial Accounts</h3>
+                    <button onclick="openAddAccountModal()" class="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Add Bank
+                    </button>
+                </div>
+                <div id="quickAccountsList" class="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                    <!-- Dynamic Account Cards injected here -->
+                </div>
+            </div>
+
+            <!-- ACTION BUTTONS GRID -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="openAddTransactionModal('expense')" class="bg-rose-600 hover:bg-rose-700 text-white p-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 font-bold text-xs transition">
+                    <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                        <i data-lucide="minus" class="w-4 h-4"></i>
+                    </div>
+                    <span>Log Expense</span>
+                </button>
+                <button onclick="openAddTransactionModal('income')" class="bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 font-bold text-xs transition">
+                    <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                    </div>
+                    <span>Add Money</span>
+                </button>
+            </div>
+
+            <!-- RECENT TRANSACTIONS LOG -->
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800 text-sm">Recent Activity Log</h3>
+                    <select id="timeframeFilter" onchange="renderTransactions()" class="bg-white border border-slate-200 text-xs rounded-lg px-2 py-1 text-slate-600 focus:outline-none">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="month">This Month</option>
+                        <option value="year">This Year</option>
+                    </select>
+                </div>
+                <div id="transactionList" class="space-y-2.5">
+                    <!-- Dynamic Transactions injected here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- DEDICATED MONEY ADDED / INCOME HISTORY VIEW -->
+        <section id="view-income" class="space-y-4 hidden">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-sm">Money Added History</h3>
+                    <p class="text-xs text-slate-500">Track all earnings and incoming funds</p>
+                </div>
+                <button onclick="openAddTransactionModal('income')" class="bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium shadow-sm hover:bg-emerald-700">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Money
+                </button>
+            </div>
+            <div id="incomeHistoryList" class="space-y-2.5">
+                <!-- Income-only list injected dynamically -->
+            </div>
+        </section>
+
+        <!-- 2. ACCOUNTS VIEW -->
+        <section id="view-accounts" class="space-y-4 hidden">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-sm">All Financial Accounts</h3>
+                <button onclick="openAddAccountModal()" class="bg-brand-600 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium shadow-sm hover:bg-brand-700">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Bank
+                </button>
+            </div>
+            <div id="fullAccountsList" class="space-y-3">
+                <!-- Full Account list injected here -->
+            </div>
+        </section>
+
+        <!-- 3. BORROW / LEND VIEW -->
+        <section id="view-debts" class="space-y-4 hidden">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-sm">Borrow & Lend Tracker</h3>
+                <button onclick="openAddDebtModal()" class="bg-brand-600 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium shadow-sm hover:bg-brand-700">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Debt Record
+                </button>
+            </div>
+            <!-- DEBT SUMMARY CARDS -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                    <div class="text-[10px] text-emerald-700 font-bold uppercase">Total Lended</div>
+                    <div id="totalLendedDisplay" class="text-lg font-black text-emerald-800 mt-0.5">৳ 0</div>
+                </div>
+                <div class="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl">
+                    <div class="text-[10px] text-rose-700 font-bold uppercase">Total Borrowed</div>
+                    <div id="totalBorrowedDisplay" class="text-lg font-black text-rose-800 mt-0.5">৳ 0</div>
+                </div>
+            </div>
+            <div id="debtsList" class="space-y-2.5">
+                <!-- Dynamic Debts injected here -->
+            </div>
+        </section>
+
+        <!-- 4. ANALYTICS VIEW -->
+        <section id="view-analytics" class="space-y-5 hidden pb-8">
+            <!-- TIMEFRAME SELECTOR FOR ANALYTICS -->
+            <div class="flex justify-between items-center bg-white p-2.5 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-700">Analytics Range</span>
+                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                    <button onclick="setAnalyticsTimeframe('daily')" id="btnAnalyticDaily" class="px-3 py-1.5 rounded-lg bg-white text-brand-900 shadow-sm transition">Daily</button>
+                    <button onclick="setAnalyticsTimeframe('monthly')" id="btnAnalyticMonthly" class="px-3 py-1.5 rounded-lg text-slate-600 transition">Monthly</button>
+                    <button onclick="setAnalyticsTimeframe('yearly')" id="btnAnalyticYearly" class="px-3 py-1.5 rounded-lg text-slate-600 transition">Yearly</button>
+                </div>
+            </div>
+
+            <!-- FINANCIAL SUMMARY STAT CARDS -->
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-2.5">
+                    <div class="text-[10px] text-emerald-700 font-bold uppercase">Total Income</div>
+                    <div id="analyticsIncomeDisplay" class="text-sm font-extrabold text-emerald-800 mt-1">৳ 0</div>
+                </div>
+                <div class="bg-rose-50 border border-rose-200 rounded-2xl p-2.5">
+                    <div class="text-[10px] text-rose-700 font-bold uppercase">Total Expense</div>
+                    <div id="analyticsExpenseDisplay" class="text-sm font-extrabold text-rose-800 mt-1">৳ 0</div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-2xl p-2.5">
+                    <div class="text-[10px] text-blue-700 font-bold uppercase">Net Savings</div>
+                    <div id="analyticsNetDisplay" class="text-sm font-extrabold text-blue-900 mt-1">৳ 0</div>
+                </div>
+            </div>
+
+            <!-- EXACT DATE PICKER FOR DAILY DRILL DOWN -->
+            <div id="dailyDatePickerContainer" class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <i data-lucide="calendar" class="w-4 h-4 text-brand-600"></i> Select Date:
+                </span>
+                <input type="date" id="analyticsExactDate" onchange="renderCharts()" class="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <!-- TIMEFRAME DIAGRAM CHART -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                <div class="flex justify-between items-center">
+                    <h4 id="analyticsChartTitle" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Expense Diagram</h4>
+                    <span id="analyticsPeriodTotal" class="text-xs font-extrabold text-rose-600"></span>
+                </div>
+                <div class="relative h-56 flex justify-center">
+                    <canvas id="timeframeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- ITEMIZED DRILL-DOWN TRANSACTIONS LIST -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3 max-h-96 overflow-y-auto">
+                <h4 id="analyticsDrilldownTitle" class="text-xs font-bold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-2">Itemized Activity History</h4>
+                <div id="analyticsDrilldownList" class="space-y-2">
+                    <!-- Dynamic detailed transactions for selected timeframe/date -->
+                </div>
+            </div>
+
+            <!-- CATEGORY BREAKDOWN CHART -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Expense Category Breakdown</h4>
+                <div class="relative h-48 flex justify-center">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- HOME QUICK-ADD FLOATING ACTION BUTTON -->
+    <button id="homeFab" onclick="openAddTransactionModal('expense')" aria-label="Add transaction" title="Add transaction"
+        class="fixed bottom-6 right-[max(1.25rem,calc((100vw-28rem)/2+1.25rem))] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-xl shadow-blue-900/25 ring-4 ring-white transition hover:bg-brand-700 active:scale-95">
+        <i data-lucide="plus" class="h-7 w-7"></i>
+    </button>
+
+    <!-- FOOTER BRANDING -->
+    <footer class="text-center py-6 text-slate-400 text-[11px] font-medium border-t border-slate-200/60 mt-auto">
+        <p>A Product of <strong class="text-slate-600 font-bold">Mahinio</strong></p>
+        <p class="text-[9px] text-slate-400 mt-0.5">Minimalist Personal Finance Architecture</p>
+    </footer>
+
+    <!-- MODAL: ADD / EDIT TRANSACTION -->
+    <div id="modalTransaction" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center">
+        <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="modalTxHeading" class="font-bold text-slate-800 text-base">New Transaction</h3>
+                <button onclick="closeModal('modalTransaction')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <form id="formTransaction" onsubmit="handleSaveTransaction(event)" class="space-y-3">
+                <input type="hidden" id="editingTxId" value="">
+                
+                <!-- TYPE TOGGLE -->
+                <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl text-xs font-bold">
+                    <button type="button" id="btnTypeExpense" onclick="setTxType('expense')" class="py-2 rounded-lg bg-rose-600 text-white transition">Expense (-)</button>
+                    <button type="button" id="btnTypeIncome" onclick="setTxType('income')" class="py-2 rounded-lg text-slate-600 transition">Income / Add (+)</button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Amount (৳)</label>
+                    <input type="number" step="0.01" id="txAmount" required placeholder="0.00" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-lg font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div>
+                    <label id="lblTxTitle" class="block text-xs font-semibold text-slate-600 mb-1">Title / Expense Reason</label>
+                    <input type="text" id="txTitle" required placeholder="e.g. Buying Flowers, Salary" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Bank / Account</label>
+                        <select id="txAccount" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <!-- Dynamic Account Options -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Category / Source</label>
+                        <select id="txCategory" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <!-- Dynamic Category Options -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Date</label>
+                        <input type="date" id="txDate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Exact Time</label>
+                        <input type="time" id="txTime" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+
+                <button type="submit" id="btnSaveTxSubmit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl shadow-lg hover:bg-brand-700 transition">Save Transaction</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD / EDIT BORROW & LEND -->
+    <div id="modalDebt" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center">
+        <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="modalDebtHeading" class="font-bold text-slate-800 text-base">Record Borrow / Lend</h3>
+                <button onclick="closeModal('modalDebt')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <form id="formDebt" onsubmit="handleSaveDebt(event)" class="space-y-3">
+                <input type="hidden" id="editingDebtId" value="">
+                
+                <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl text-xs font-bold">
+                    <button type="button" id="btnDebtLend" onclick="setDebtType('lend')" class="py-2 rounded-lg bg-emerald-600 text-white transition">Lended Money (+)</button>
+                    <button type="button" id="btnDebtBorrow" onclick="setDebtType('borrow')" class="py-2 rounded-lg text-slate-600 transition">Borrowed Money (-)</button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Person Name</label>
+                    <input type="text" id="debtPerson" required placeholder="e.g., Rahim, Tanvir" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Amount (৳)</label>
+                    <input type="number" step="0.01" id="debtAmount" required placeholder="0.00" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Account Sourced</label>
+                        <select id="debtAccount" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <!-- Accounts -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Expected Return Date</label>
+                        <input type="date" id="debtDueDate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+
+                <div id="debtSettledRow" class="hidden flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="debtSettledInput" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500">
+                    <label for="debtSettledInput" class="text-xs font-semibold text-slate-700">Mark Record as Settled</label>
+                </div>
+
+                <button type="submit" id="btnSaveDebtSubmit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl shadow-lg hover:bg-brand-700 transition">Save Debt Record</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CATEGORY MANAGEMENT (SEPARATED INCOME & EXPENSE) -->
+    <div id="modalCategories" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-5 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base">Manage Categories</h3>
+                <button onclick="closeModal('modalCategories')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl text-xs font-bold">
+                <button type="button" id="btnCatTabExpense" onclick="setCategoryTab('expense')" class="py-1.5 rounded-lg bg-rose-600 text-white transition">Expense</button>
+                <button type="button" id="btnCatTabIncome" onclick="setCategoryTab('income')" class="py-1.5 rounded-lg text-slate-600 transition">Income / Source</button>
+            </div>
+
+            <div class="flex gap-2">
+                <input type="text" id="newCategoryInput" placeholder="Category Name" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <button onclick="addCategory()" class="bg-brand-600 text-white px-3 py-2.5 rounded-xl text-xs font-bold hover:bg-brand-700">Add</button>
+            </div>
+
+            <div id="categoryListContainer" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                <!-- Dynamic categories injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD / EDIT ACCOUNT -->
+    <div id="modalAccount" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center">
+        <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="modalAccountHeading" class="font-bold text-slate-800 text-base">Add New Account</h3>
+                <button onclick="closeModal('modalAccount')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <form id="formAccount" onsubmit="handleSaveAccount(event)" class="space-y-3">
+                <input type="hidden" id="editingAccId" value="">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Account / Bank Name</label>
+                    <input type="text" id="accName" required placeholder="e.g., bKash, Islami Bank" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Current Balance (৳)</label>
+                    <input type="number" step="0.01" id="accBalance" required placeholder="0.00" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Bank Logo / Image (Optional)</label>
+                    <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <img id="accLogoPreview" alt="Account logo preview" class="hidden h-12 w-12 rounded-xl border border-slate-200 bg-white object-contain p-1">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-semibold text-slate-700">Choose from your device</p>
+                            <p class="text-[10px] text-slate-500">Saved on this phone for offline use</p>
+                        </div>
+                        <label for="accLogoFile" class="cursor-pointer rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white shadow-sm">Choose image</label>
+                        <input type="file" id="accLogoFile" accept="image/*" class="hidden" onchange="handleAccountImagePick(event)">
+                    </div>
+                    <button type="button" onclick="clearAccountImage()" class="text-[10px] font-semibold text-rose-600">Remove image</button>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Theme Color</label>
+                    <select id="accColor" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="bg-blue-600">Blue Navy</option>
+                        <option value="bg-emerald-600">Emerald Green</option>
+                        <option value="bg-pink-600">bKash Pink</option>
+                        <option value="bg-orange-600">Nagad Orange</option>
+                        <option value="bg-purple-600">Purple</option>
+                        <option value="bg-amber-600">Amber Gold</option>
+                        <option value="bg-rose-600">Rose Red</option>
+                    </select>
+                </div>
+                <button type="submit" id="btnSaveAccSubmit" class="w-full py-3 bg-brand-600 text-white font-bold rounded-xl shadow-lg hover:bg-brand-700 transition">Save Account</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ACCOUNT DELETION SAFEGUARD WARNING -->
+    <div id="modalAccountDeleteConfirm" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-5 space-y-4 text-center">
+            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-slate-800 text-base">Delete Bank Account?</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Are you sure you want to remove <strong id="deleteAccountNameDisplay" class="text-slate-800">Account</strong>? This action cannot be undone and may affect total balance calculations.
+            </p>
+            <div class="grid grid-cols-2 gap-2 pt-2">
+                <button onclick="closeModal('modalAccountDeleteConfirm')" class="py-2.5 bg-slate-100 font-bold text-slate-700 rounded-xl text-xs hover:bg-slate-200">Cancel</button>
+                <button id="btnConfirmDeleteAcc" onclick="confirmDeleteAccount()" class="py-2.5 bg-rose-600 font-bold text-white rounded-xl text-xs hover:bg-rose-700 shadow-md">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PROFILE PICTURE & USER SETTINGS -->
+    <div id="modalProfile" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-5 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base">Profile Settings</h3>
+                <button onclick="closeModal('modalProfile')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <form onsubmit="handleSaveProfile(event)" class="space-y-3">
+                <div class="flex flex-col items-center space-y-2">
+                    <img id="modalProfilePreview"  class="w-20 h-20 rounded-full border-2 border-brand-500 object-cover shadow-md">
+                    <span class="text-[11px] text-slate-400">Preview Profile Picture</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Your Name</label>
+                    <input type="text" id="profileNameInput" required placeholder="Enter Your Name" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Profile Picture</label>
+                    <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-semibold text-slate-700">Choose a photo from your device</p>
+                            <p class="text-[10px] text-slate-500">Stored locally and available offline</p>
+                        </div>
+                        <label for="profileAvatarFile" class="cursor-pointer rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white shadow-sm">Choose photo</label>
+                        <input type="file" id="profileAvatarFile" accept="image/*" class="hidden" onchange="handleProfileImagePick(event)">
+                    </div>
+                    <button type="button" onclick="clearProfileImage()" class="text-[10px] font-semibold text-rose-600">Remove photo</button>
+                </div>
+
+                <button type="submit" class="w-full py-2.5 bg-brand-600 text-white font-bold rounded-xl shadow-lg hover:bg-brand-700 transition text-xs">Save Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: GOOGLE DRIVE BACKUP SIMULATION -->
+    <div id="modalDrive" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-5 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i data-lucide="cloud" class="w-5 h-5 text-brand-600"></i> Cloud & Drive Sync
+                </h3>
+                <button onclick="closeModal('modalDrive')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Backup your transactions, custom banks, and debt history safely to your Google Drive account or export a local JSON file.
+            </p>
+
+            <div class="space-y-2">
+                <button onclick="simulateDriveSync()" class="w-full py-2.5 bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md hover:bg-brand-700 transition flex items-center justify-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync to Google Drive
+                </button>
+                <button onclick="exportDataJSON()" class="w-full py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-200 transition flex items-center justify-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i> Export JSON Backup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // --- DATA STORE INIT ---
+        const DEFAULT_ACCOUNTS = [
+            { id: 'acc_bkash', name: 'bKash', balance: 5000, color: 'bg-pink-600', logoUrl: '', logoIcon: 'smartphone' },
+            { id: 'acc_nagad', name: 'Nagad', balance: 2500, color: 'bg-orange-600', logoUrl: '', logoIcon: 'smartphone' },
+            { id: 'acc_dbbl', name: 'Dutch Bangla (DBBL)', balance: 18500, color: 'bg-blue-700', logoUrl: '', logoIcon: 'building-2' },
+            { id: 'acc_islami', name: 'Islami Bank', balance: 12000, color: 'bg-emerald-700', logoUrl: '', logoIcon: 'landmark' },
+            { id: 'acc_cash', name: 'Cash Balance', balance: 3400, color: 'bg-slate-700', logoUrl: '', logoIcon: 'banknote' }
+        ];
+
+        const DEFAULT_EXPENSE_CATEGORIES = ['Shopping', 'Food & Dining', 'Bills & Utilities', 'Transport', 'Rent', 'Health', 'General'];
+        const DEFAULT_INCOME_CATEGORIES = ['Salary', 'Freelance', 'Business', 'Gift', 'Investments', 'Bank Transfer', 'Other Source'];
+
+        let state = {
+            accounts: JSON.parse(localStorage.getItem('mahinio_accounts')) || DEFAULT_ACCOUNTS,
+            transactions: JSON.parse(localStorage.getItem('mahinio_transactions')) || [],
+            expenseCategories: JSON.parse(localStorage.getItem('mahinio_expense_cats')) || DEFAULT_EXPENSE_CATEGORIES,
+            incomeCategories: JSON.parse(localStorage.getItem('mahinio_income_cats')) || DEFAULT_INCOME_CATEGORIES,
+            debts: JSON.parse(localStorage.getItem('mahinio_debts')) || [],
+            profile: JSON.parse(localStorage.getItem('mahinio_profile')) || { name: 'Mahinio User', avatarUrl: '' },
+            currentTxType: 'expense',
+            currentDebtType: 'lend',
+            activeCatTab: 'expense',
+            analyticsTimeframe: 'daily',
+            targetDeleteAccId: null
+        };
+
+        // Remove legacy web image links so previously saved URL images do not break offline use.
+        if (state.profile.avatarUrl && !state.profile.avatarUrl.startsWith('data:image/')) state.profile.avatarUrl = '';
+        state.accounts.forEach(account => {
+            if (account.logoUrl && !account.logoUrl.startsWith('data:image/')) account.logoUrl = '';
+        });
+
+        let categoryChartInstance = null;
+        let timeframeChartInstance = null;
+
+        // --- LIFECYCLE INITIALIZATION ---
+        window.onload = function() {
+            lucide.createIcons();
+            setDefaultDates();
+            loadProfileView();
+            updateAppView();
+        };
+
+        function saveData() {
+            localStorage.setItem('mahinio_accounts', JSON.stringify(state.accounts));
+            localStorage.setItem('mahinio_transactions', JSON.stringify(state.transactions));
+            localStorage.setItem('mahinio_expense_cats', JSON.stringify(state.expenseCategories));
+            localStorage.setItem('mahinio_income_cats', JSON.stringify(state.incomeCategories));
+            localStorage.setItem('mahinio_debts', JSON.stringify(state.debts));
+            localStorage.setItem('mahinio_profile', JSON.stringify(state.profile));
+            updateAppView();
+        }
+
+        function loadProfileView() {
+            document.getElementById('userDisplayName').textContent = state.profile.name || 'Mahinio User';
+            document.getElementById('headerProfileAvatar').src = state.profile.avatarUrl || DEFAULT_AVATAR;
+            document.getElementById('profileNameInput').value = state.profile.name || '';
+            document.getElementById('modalProfilePreview').src = state.profile.avatarUrl || DEFAULT_AVATAR;
+        }
+
+        function openProfileModal() {
+            loadProfileView();
+            document.getElementById('modalProfile').classList.remove('hidden');
+        }
+
+        const DEFAULT_AVATAR = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" rx="60" fill="#dbeafe"/><circle cx="60" cy="45" r="22" fill="#2563eb"/><path d="M20 112c3-25 19-38 40-38s37 13 40 38" fill="#2563eb"/></svg>'
+        );
+
+        // Resize photos before saving so offline images use less phone storage.
+        function imageFileToDataURL(file, maxSize = 360, quality = 0.76) {
+            return new Promise((resolve, reject) => {
+                if (!file || !file.type.startsWith('image/')) {
+                    reject(new Error('Please choose an image file.'));
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('Could not read this image.'));
+                reader.onload = () => {
+                    const img = new Image();
+                    img.onerror = () => reject(new Error('This image could not be opened.'));
+                    img.onload = () => {
+                        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+                        const canvas = document.createElement('canvas');
+                        canvas.width = Math.max(1, Math.round(img.width * scale));
+                        canvas.height = Math.max(1, Math.round(img.height * scale));
+                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.src = reader.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function handleProfileImagePick(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+                state.profile.avatarUrl = await imageFileToDataURL(file, 420, 0.78);
+                document.getElementById('modalProfilePreview').src = state.profile.avatarUrl;
+            } catch (error) {
+                alert(error.message || 'Unable to use this photo.');
+            }
+            event.target.value = '';
+        }
+
+        function clearProfileImage() {
+            state.profile.avatarUrl = '';
+            document.getElementById('modalProfilePreview').src = DEFAULT_AVATAR;
+        }
+
+        function handleSaveProfile(e) {
+            e.preventDefault();
+            state.profile.name = document.getElementById('profileNameInput').value.trim();
+            saveData();
+            loadProfileView();
+            closeModal('modalProfile');
+        }
+
+        function setDefaultDates() {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            
+            document.getElementById('txDate').value = dateStr;
+            document.getElementById('txTime').value = `${hours}:${minutes}`;
+            document.getElementById('debtDueDate').value = dateStr;
+            document.getElementById('analyticsExactDate').value = dateStr;
+        }
+
+        function formatDateTimeDisplay(dateStr, timeStr) {
+            if (!dateStr) return '';
+            const dt = new Date(`${dateStr}T${timeStr || '00:00'}`);
+            const options = { month: 'short', day: 'numeric', year: 'numeric' };
+            const formattedDate = dt.toLocaleDateString('en-US', options);
+            
+            if (!timeStr) return formattedDate;
+            let [h, m] = timeStr.split(':');
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            return `${formattedDate} • ${h}:${m} ${ampm}`;
+        }
+
+        // --- TAB NAVIGATION ---
+        function switchTab(tabId) {
+            ['dashboard', 'income', 'accounts', 'debts', 'analytics'].forEach(tab => {
+                document.getElementById(`view-${tab}`).classList.add('hidden');
+                const navBtn = document.getElementById(`tab-${tab}`);
+                if (navBtn) {
+                    navBtn.classList.remove('bg-white', 'text-brand-900', 'shadow-sm');
+                    navBtn.classList.add('hover:text-slate-900');
+                }
+            });
+
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            const fab = document.getElementById('homeFab');
+            if (fab) fab.classList.toggle('hidden', tabId !== 'dashboard');
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-white', 'text-brand-900', 'shadow-sm');
+                activeBtn.classList.remove('hover:text-slate-900');
+            }
+
+            if (tabId === 'income') {
+                renderIncomeHistory();
+            } else if (tabId === 'analytics') {
+                renderCharts();
+            }
+        }
+
+        // --- CALCULATIONS & UI RENDERING ---
+        function calculateTotalBalance() {
+            return state.accounts.reduce((total, acc) => total + parseFloat(acc.balance), 0);
+        }
+
+        function updateAppView() {
+            const totalBalance = calculateTotalBalance();
+            const netDisplay = document.getElementById('netBalanceDisplay');
+            
+            netDisplay.textContent = `৳ ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+            if (totalBalance < 0) {
+                netDisplay.className = "text-3xl font-extrabold tracking-tight mt-1 text-rose-400 transition-colors";
+            } else {
+                netDisplay.className = "text-3xl font-extrabold tracking-tight mt-1 text-emerald-400 transition-colors";
+            }
+
+            document.getElementById('accountCountLabel').textContent = `${state.accounts.length} Accounts`;
+
+            renderAccountOptions();
+            renderCategoryOptions();
+            renderQuickAccounts();
+            renderFullAccounts();
+            renderTransactions();
+            renderIncomeHistory();
+            renderDebts();
+            lucide.createIcons();
+        }
+
+        function renderAccountOptions() {
+            const txSelect = document.getElementById('txAccount');
+            const debtSelect = document.getElementById('debtAccount');
+            const optionsHTML = state.accounts.map(acc => `<option value="${acc.id}">${acc.name} (৳${parseFloat(acc.balance).toLocaleString()})</option>`).join('');
+            
+            txSelect.innerHTML = optionsHTML;
+            debtSelect.innerHTML = optionsHTML;
+        }
+
+        function renderCategoryOptions() {
+            const catSelect = document.getElementById('txCategory');
+            const categoryList = state.currentTxType === 'income' ? state.incomeCategories : state.expenseCategories;
+            catSelect.innerHTML = categoryList.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        // --- SEPARATED CATEGORY MODAL HANDLERS ---
+        function openCategoryModal() {
+            renderCategoryList();
+            document.getElementById('modalCategories').classList.remove('hidden');
+        }
+
+        function setCategoryTab(tab) {
+            state.activeCatTab = tab;
+            const btnExp = document.getElementById('btnCatTabExpense');
+            const btnInc = document.getElementById('btnCatTabIncome');
+
+            if (tab === 'expense') {
+                btnExp.className = "py-1.5 rounded-lg bg-rose-600 text-white transition";
+                btnInc.className = "py-1.5 rounded-lg text-slate-600 transition";
+            } else {
+                btnInc.className = "py-1.5 rounded-lg bg-emerald-600 text-white transition";
+                btnExp.className = "py-1.5 rounded-lg text-slate-600 transition";
+            }
+            renderCategoryList();
+        }
+
+        function renderCategoryList() {
+            const container = document.getElementById('categoryListContainer');
+            const categories = state.activeCatTab === 'income' ? state.incomeCategories : state.expenseCategories;
+            
+            container.innerHTML = categories.map((c, index) => `
+                <div class="flex justify-between items-center p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700">
+                    <span>${c}</span>
+                    <button onclick="deleteCategory(${index})" class="text-rose-500 hover:text-rose-700 p-1">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function addCategory() {
+            const input = document.getElementById('newCategoryInput');
+            const val = input.value.trim();
+            const targetList = state.activeCatTab === 'income' ? state.incomeCategories : state.expenseCategories;
+            
+            if (val && !targetList.includes(val)) {
+                targetList.push(val);
+                input.value = '';
+                saveData();
+                renderCategoryList();
+            }
+        }
+
+        function deleteCategory(index) {
+            const targetList = state.activeCatTab === 'income' ? state.incomeCategories : state.expenseCategories;
+            if (targetList.length <= 1) {
+                alert("You must keep at least one category.");
+                return;
+            }
+            targetList.splice(index, 1);
+            saveData();
+            renderCategoryList();
+        }
+
+        // --- ACCOUNT LOGOS & ACCOUNTS VIEW ---
+        function renderAccountLogoHTML(acc, sizeClass = "w-10 h-10") {
+            if (acc.logoUrl) {
+                return `<img src="${acc.logoUrl}" alt="${acc.name}" class="${sizeClass} rounded-xl object-contain bg-white p-1 border border-slate-200 shadow-sm">`;
+            }
+            return `
+                <div class="${sizeClass} rounded-xl ${acc.color} text-white flex items-center justify-center shadow-md font-bold">
+                    <i data-lucide="${acc.logoIcon || 'building-2'}" class="w-5 h-5"></i>
+                </div>
+            `;
+        }
+
+        function renderQuickAccounts() {
+            const container = document.getElementById('quickAccountsList');
+            container.innerHTML = state.accounts.map(acc => `
+                <div onclick="openEditAccountModal('${acc.id}')" class="min-w-[130px] p-3 rounded-2xl glass-card shadow-sm flex flex-col justify-between border-l-4 cursor-pointer hover:border-brand-500 transition ${acc.color.replace('bg-', 'border-')}">
+                    <div class="flex justify-between items-center text-slate-500">
+                        ${renderAccountLogoHTML(acc, "w-6 h-6")}
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-600">${acc.name.substring(0, 9)}</span>
+                    </div>
+                    <div class="mt-2">
+                        <div class="text-[10px] text-slate-400">Balance</div>
+                        <div class="text-sm font-bold text-slate-800 truncate">৳ ${parseFloat(acc.balance).toLocaleString()}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderFullAccounts() {
+            const container = document.getElementById('fullAccountsList');
+            container.innerHTML = state.accounts.map(acc => `
+                <div class="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        ${renderAccountLogoHTML(acc, "w-11 h-11")}
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-sm">${acc.name}</h4>
+                            <span class="text-[10px] text-slate-400">Tap to edit details</span>
+                        </div>
+                    </div>
+                    <div class="text-right flex items-center gap-2">
+                        <div>
+                            <div class="text-base font-bold text-slate-900">৳ ${parseFloat(acc.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="openEditAccountModal('${acc.id}')" class="p-1.5 text-slate-400 hover:text-brand-600 rounded-lg transition" title="Edit Bank">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="promptDeleteAccount('${acc.id}', '${acc.name}')" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition" title="Delete Bank">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openAddAccountModal() {
+            document.getElementById('editingAccId').value = '';
+            document.getElementById('modalAccountHeading').textContent = 'Add New Account';
+            document.getElementById('btnSaveAccSubmit').textContent = 'Create Account';
+            document.getElementById('formAccount').reset();
+            document.getElementById('accLogoPreview').src = '';
+            document.getElementById('accLogoPreview').dataset.image = '';
+            document.getElementById('accLogoPreview').classList.add('hidden');
+            document.getElementById('modalAccount').classList.remove('hidden');
+        }
+
+        function openEditAccountModal(id) {
+            const acc = state.accounts.find(a => a.id === id);
+            if (!acc) return;
+
+            document.getElementById('editingAccId').value = acc.id;
+            document.getElementById('modalAccountHeading').textContent = 'Edit Account Details';
+            document.getElementById('btnSaveAccSubmit').textContent = 'Update Account';
+            
+            document.getElementById('accName').value = acc.name;
+            document.getElementById('accBalance').value = acc.balance;
+            document.getElementById('accLogoFile').value = '';
+            const logoPreview = document.getElementById('accLogoPreview');
+            logoPreview.src = acc.logoUrl || '';
+            logoPreview.dataset.image = acc.logoUrl || '';
+            logoPreview.classList.toggle('hidden', !acc.logoUrl);
+            document.getElementById('accColor').value = acc.color || 'bg-blue-600';
+
+            document.getElementById('modalAccount').classList.remove('hidden');
+        }
+
+        async function handleAccountImagePick(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+                const dataUrl = await imageFileToDataURL(file, 320, 0.72);
+                const preview = document.getElementById('accLogoPreview');
+                preview.src = dataUrl;
+                preview.dataset.image = dataUrl;
+                preview.classList.remove('hidden');
+            } catch (error) {
+                alert(error.message || 'Unable to use this image.');
+            }
+            event.target.value = '';
+        }
+
+        function clearAccountImage() {
+            const preview = document.getElementById('accLogoPreview');
+            preview.src = '';
+            preview.dataset.image = '';
+            preview.classList.add('hidden');
+            document.getElementById('accLogoFile').value = '';
+        }
+
+        function handleSaveAccount(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editingAccId').value;
+            const name = document.getElementById('accName').value.trim();
+            const balance = parseFloat(document.getElementById('accBalance').value);
+            const logoUrl = document.getElementById('accLogoPreview').dataset.image || '';
+            const color = document.getElementById('accColor').value;
+
+            if (editId) {
+                const index = state.accounts.findIndex(a => a.id === editId);
+                if (index !== -1) {
+                    state.accounts[index].name = name;
+                    state.accounts[index].balance = balance;
+                    state.accounts[index].logoUrl = logoUrl;
+                    state.accounts[index].color = color;
+                }
+            } else {
+                state.accounts.push({
+                    id: 'acc_' + Date.now(),
+                    name,
+                    balance,
+                    logoUrl,
+                    color,
+                    logoIcon: 'building-2'
+                });
+            }
+
+            saveData();
+            closeModal('modalAccount');
+            document.getElementById('formAccount').reset();
+        }
+
+        // BANK ACCOUNT DELETION SAFEGUARD WARNING
+        function promptDeleteAccount(id, name) {
+            if (state.accounts.length <= 1) {
+                alert("You must keep at least one active bank account.");
+                return;
+            }
+            state.targetDeleteAccId = id;
+            document.getElementById('deleteAccountNameDisplay').textContent = name;
+            document.getElementById('modalAccountDeleteConfirm').classList.remove('hidden');
+        }
+
+        function confirmDeleteAccount() {
+            if (state.targetDeleteAccId) {
+                state.accounts = state.accounts.filter(a => a.id !== state.targetDeleteAccId);
+                state.targetDeleteAccId = null;
+                saveData();
+            }
+            closeModal('modalAccountDeleteConfirm');
+        }
+
+        // --- TRANSACTIONS & DEDICATED MONEY ADDED HISTORY ---
+        function renderTransactions() {
+            const container = document.getElementById('transactionList');
+            const timeframe = document.getElementById('timeframeFilter').value;
+            const now = new Date();
+
+            let filtered = state.transactions.filter(tx => {
+                const txDate = new Date(tx.date);
+                if (timeframe === 'today') {
+                    return txDate.toDateString() === now.toDateString();
+                } else if (timeframe === 'month') {
+                    return txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
+                } else if (timeframe === 'year') {
+                    return txDate.getFullYear() === now.getFullYear();
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">No transactions recorded for this period.</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.slice().reverse().map(tx => renderTxCardHTML(tx)).join('');
+        }
+
+        function renderIncomeHistory() {
+            const container = document.getElementById('incomeHistoryList');
+            const incomeTxs = state.transactions.filter(tx => tx.type === 'income');
+
+            if (incomeTxs.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">No money added/income history recorded yet.</div>`;
+                return;
+            }
+
+            container.innerHTML = incomeTxs.slice().reverse().map(tx => renderTxCardHTML(tx)).join('');
+            lucide.createIcons();
+        }
+
+        function renderTxCardHTML(tx) {
+            const isExpense = tx.type === 'expense';
+            const acc = state.accounts.find(a => a.id === tx.accountId) || { name: 'Unknown' };
+            const dtDisplay = formatDateTimeDisplay(tx.date, tx.time);
+
+            if (!isExpense) {
+                // INCOME CARD: Prominent Green Highlighted Design
+                return `
+                    <div class="p-4 bg-emerald-50/70 border-2 border-emerald-300 rounded-2xl shadow-sm flex justify-between items-center transition hover:border-emerald-400">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                                <i data-lucide="arrow-down-left" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h5 class="font-extrabold text-slate-900 text-sm">${tx.title}</h5>
+                                    <span class="text-[9px] bg-emerald-200 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">MONEY ADDED</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500 font-medium flex items-center gap-1.5 mt-0.5">
+                                    <span>Source: <b>${tx.category}</b></span> • <span>${acc.name}</span>
+                                </div>
+                                <div class="text-[9px] text-emerald-700 font-semibold mt-0.5">${dtDisplay}</div>
+                            </div>
+                        </div>
+                        <div class="text-right flex items-center gap-2">
+                            <div>
+                                <div class="text-base font-black text-emerald-700">
+                                    +৳${parseFloat(tx.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-1 ml-1">
+                                <button onclick="openEditTransactionModal('${tx.id}')" class="p-1 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-md transition" title="Edit">
+                                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button onclick="deleteTransaction('${tx.id}')" class="p-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-100 rounded-md transition" title="Delete">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // EXPENSE CARD
+            return `
+                <div class="p-3 bg-white rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center hover:border-slate-200 transition">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                            <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-slate-800 text-xs">${tx.title}</h5>
+                            <div class="text-[10px] text-slate-400 flex items-center gap-1.5">
+                                <span>${tx.category}</span> • <span>${acc.name}</span>
+                            </div>
+                            <div class="text-[9px] text-slate-400">${dtDisplay}</div>
+                        </div>
+                    </div>
+                    <div class="text-right flex items-center gap-2">
+                        <div>
+                            <div class="text-xs font-bold text-rose-600">
+                                -৳${parseFloat(tx.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 ml-1">
+                            <button onclick="openEditTransactionModal('${tx.id}')" class="p-1 text-slate-400 hover:text-brand-600 rounded-md transition" title="Edit">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="deleteTransaction('${tx.id}')" class="p-1 text-slate-400 hover:text-rose-600 rounded-md transition" title="Delete">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function setTxType(type) {
+            state.currentTxType = type;
+            const btnExp = document.getElementById('btnTypeExpense');
+            const btnInc = document.getElementById('btnTypeIncome');
+            const lblTitle = document.getElementById('lblTxTitle');
+
+            if (type === 'expense') {
+                btnExp.className = "py-2 rounded-lg bg-rose-600 text-white transition";
+                btnInc.className = "py-2 rounded-lg text-slate-600 transition";
+                lblTitle.textContent = "Title / Expense Reason";
+            } else {
+                btnInc.className = "py-2 rounded-lg bg-emerald-600 text-white transition";
+                btnExp.className = "py-2 rounded-lg text-slate-600 transition";
+                lblTitle.textContent = "Title / Source of Money";
+            }
+            renderCategoryOptions();
+        }
+
+        function openAddTransactionModal(defaultType = 'expense') {
+            document.getElementById('editingTxId').value = '';
+            document.getElementById('modalTxHeading').textContent = 'New Transaction';
+            document.getElementById('btnSaveTxSubmit').textContent = 'Save Transaction';
+            document.getElementById('formTransaction').reset();
+            setTxType(defaultType);
+            setDefaultDates();
+            document.getElementById('modalTransaction').classList.remove('hidden');
+        }
+
+        function openEditTransactionModal(id) {
+            const tx = state.transactions.find(t => t.id === id);
+            if (!tx) return;
+
+            document.getElementById('editingTxId').value = tx.id;
+            document.getElementById('modalTxHeading').textContent = 'Edit Transaction';
+            document.getElementById('btnSaveTxSubmit').textContent = 'Update Transaction';
+            
+            setTxType(tx.type);
+            document.getElementById('txAmount').value = tx.amount;
+            document.getElementById('txTitle').value = tx.title;
+            document.getElementById('txAccount').value = tx.accountId;
+            renderCategoryOptions();
+            document.getElementById('txCategory').value = tx.category;
+            document.getElementById('txDate').value = tx.date;
+            document.getElementById('txTime').value = tx.time || '12:00';
+
+            document.getElementById('modalTransaction').classList.remove('hidden');
+        }
+
+        function handleSaveTransaction(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editingTxId').value;
+            const amount = parseFloat(document.getElementById('txAmount').value);
+            const title = document.getElementById('txTitle').value.trim();
+            const accountId = document.getElementById('txAccount').value;
+            const category = document.getElementById('txCategory').value;
+            const date = document.getElementById('txDate').value;
+            const time = document.getElementById('txTime').value;
+
+            if (editId) {
+                // Reverse previous transaction effect
+                const oldTx = state.transactions.find(t => t.id === editId);
+                if (oldTx) {
+                    const oldAccount = state.accounts.find(a => a.id === oldTx.accountId);
+                    if (oldAccount) {
+                        if (oldTx.type === 'expense') {
+                            oldAccount.balance = parseFloat(oldAccount.balance) + parseFloat(oldTx.amount);
+                        } else {
+                            oldAccount.balance = parseFloat(oldAccount.balance) - parseFloat(oldTx.amount);
+                        }
+                    }
+                }
+
+                const index = state.transactions.findIndex(t => t.id === editId);
+                state.transactions[index] = {
+                    id: editId,
+                    title,
+                    amount,
+                    accountId,
+                    category,
+                    date,
+                    time,
+                    type: state.currentTxType
+                };
+            } else {
+                state.transactions.push({
+                    id: 'tx_' + Date.now(),
+                    title,
+                    amount,
+                    accountId,
+                    category,
+                    date,
+                    time,
+                    type: state.currentTxType
+                });
+            }
+
+            // Apply new transaction balance effect
+            const targetAccount = state.accounts.find(a => a.id === accountId);
+            if (targetAccount) {
+                if (state.currentTxType === 'expense') {
+                    targetAccount.balance = parseFloat(targetAccount.balance) - amount;
+                } else {
+                    targetAccount.balance = parseFloat(targetAccount.balance) + amount;
+                }
+            }
+
+            saveData();
+            closeModal('modalTransaction');
+            document.getElementById('formTransaction').reset();
+            setDefaultDates();
+        }
+
+        function deleteTransaction(id) {
+            const tx = state.transactions.find(t => t.id === id);
+            if (!tx) return;
+
+            const account = state.accounts.find(a => a.id === tx.accountId);
+            if (account) {
+                if (tx.type === 'expense') {
+                    account.balance = parseFloat(account.balance) + parseFloat(tx.amount);
+                } else {
+                    account.balance = parseFloat(account.balance) - parseFloat(tx.amount);
+                }
+            }
+
+            state.transactions = state.transactions.filter(t => t.id !== id);
+            saveData();
+        }
+
+        // --- DEBT HANDLERS ---
+        function renderDebts() {
+            const container = document.getElementById('debtsList');
+            let totalLended = 0;
+            let totalBorrowed = 0;
+
+            state.debts.forEach(d => {
+                if(!d.settled) {
+                    if(d.type === 'lend') totalLended += parseFloat(d.amount);
+                    else totalBorrowed += parseFloat(d.amount);
+                }
+            });
+
+            document.getElementById('totalLendedDisplay').textContent = `৳ ${totalLended.toLocaleString()}`;
+            document.getElementById('totalBorrowedDisplay').textContent = `৳ ${totalBorrowed.toLocaleString()}`;
+
+            if (state.debts.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">No debts or lended records found.</div>`;
+                return;
+            }
+
+            container.innerHTML = state.debts.slice().reverse().map(d => `
+                <div class="p-3.5 bg-white rounded-2xl border ${d.settled ? 'opacity-50 border-slate-100' : 'border-slate-200'} shadow-sm flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl ${d.type === 'lend' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'} flex items-center justify-center font-bold text-xs">
+                            ${d.person.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-slate-800 text-xs">${d.person}</h5>
+                            <div class="text-[10px] text-slate-400">Expected: ${d.dueDate} • ${d.type === 'lend' ? 'Lended' : 'Borrowed'}</div>
+                        </div>
+                    </div>
+                    <div class="text-right flex items-center gap-2">
+                        <div>
+                            <div class="text-xs font-bold ${d.type === 'lend' ? 'text-emerald-600' : 'text-rose-600'}">
+                                ৳${parseFloat(d.amount).toLocaleString()}
+                            </div>
+                            <span class="text-[9px] px-1.5 py-0.5 rounded-full ${d.settled ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700 font-semibold'}">
+                                ${d.settled ? 'Settled' : 'Pending'}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1 ml-1">
+                            <button onclick="openEditDebtModal('${d.id}')" class="p-1 text-slate-400 hover:text-brand-600 rounded-lg transition" title="Edit Debt">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            </button>
+                            ${!d.settled ? `
+                                <button onclick="settleDebt('${d.id}')" class="p-1 bg-slate-100 hover:bg-emerald-600 hover:text-white rounded-lg text-slate-600 transition" title="Mark as Settled">
+                                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                </button>
+                            ` : ''}
+                            <button onclick="deleteDebt('${d.id}')" class="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition" title="Delete Debt">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function setDebtType(type) {
+            state.currentDebtType = type;
+            const btnLend = document.getElementById('btnDebtLend');
+            const btnBorrow = document.getElementById('btnDebtBorrow');
+
+            if (type === 'lend') {
+                btnLend.className = "py-2 rounded-lg bg-emerald-600 text-white transition";
+                btnBorrow.className = "py-2 rounded-lg text-slate-600 transition";
+            } else {
+                btnBorrow.className = "py-2 rounded-lg bg-rose-600 text-white transition";
+                btnLend.className = "py-2 rounded-lg text-slate-600 transition";
+            }
+        }
+
+        function openAddDebtModal() {
+            document.getElementById('editingDebtId').value = '';
+            document.getElementById('modalDebtHeading').textContent = 'Record Borrow / Lend';
+            document.getElementById('btnSaveDebtSubmit').textContent = 'Save Debt Record';
+            document.getElementById('debtSettledRow').classList.add('hidden');
+            document.getElementById('formDebt').reset();
+            setDebtType('lend');
+            setDefaultDates();
+            document.getElementById('modalDebt').classList.remove('hidden');
+        }
+
+        function openEditDebtModal(id) {
+            const d = state.debts.find(item => item.id === id);
+            if (!d) return;
+
+            document.getElementById('editingDebtId').value = d.id;
+            document.getElementById('modalDebtHeading').textContent = 'Edit Borrow / Lend Record';
+            document.getElementById('btnSaveDebtSubmit').textContent = 'Update Debt Record';
+            document.getElementById('debtSettledRow').classList.remove('hidden');
+
+            setDebtType(d.type);
+            document.getElementById('debtPerson').value = d.person;
+            document.getElementById('debtAmount').value = d.amount;
+            document.getElementById('debtAccount').value = d.accountId || state.accounts[0].id;
+            document.getElementById('debtDueDate').value = d.dueDate;
+            document.getElementById('debtSettledInput').checked = !!d.settled;
+
+            document.getElementById('modalDebt').classList.remove('hidden');
+        }
+
+        function handleSaveDebt(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editingDebtId').value;
+            const person = document.getElementById('debtPerson').value.trim();
+            const amount = parseFloat(document.getElementById('debtAmount').value);
+            const accountId = document.getElementById('debtAccount').value;
+            const dueDate = document.getElementById('debtDueDate').value;
+            const isSettled = document.getElementById('debtSettledInput').checked;
+
+            if (editId) {
+                // Revert previous unsettled effect on account balance
+                const oldDebt = state.debts.find(d => d.id === editId);
+                if (oldDebt && !oldDebt.settled) {
+                    const oldAccount = state.accounts.find(a => a.id === oldDebt.accountId);
+                    if (oldAccount) {
+                        if (oldDebt.type === 'lend') {
+                            oldAccount.balance = parseFloat(oldAccount.balance) + parseFloat(oldDebt.amount);
+                        } else {
+                            oldAccount.balance = parseFloat(oldAccount.balance) - parseFloat(oldDebt.amount);
+                        }
+                    }
+                }
+
+                const idx = state.debts.findIndex(d => d.id === editId);
+                if (idx !== -1) {
+                    state.debts[idx] = {
+                        id: editId,
+                        person,
+                        amount,
+                        accountId,
+                        dueDate,
+                        type: state.currentDebtType,
+                        settled: isSettled
+                    };
+                }
+
+                // Apply new non-settled effect
+                if (!isSettled) {
+                    const account = state.accounts.find(a => a.id === accountId);
+                    if (account) {
+                        if (state.currentDebtType === 'lend') {
+                            account.balance = parseFloat(account.balance) - amount;
+                        } else {
+                            account.balance = parseFloat(account.balance) + amount;
+                        }
+                    }
+                }
+            } else {
+                // New Debt entry
+                const account = state.accounts.find(a => a.id === accountId);
+                if (account) {
+                    if (state.currentDebtType === 'lend') {
+                        account.balance = parseFloat(account.balance) - amount;
+                    } else {
+                        account.balance = parseFloat(account.balance) + amount;
+                    }
+                }
+
+                state.debts.push({
+                    id: 'debt_' + Date.now(),
+                    person,
+                    amount,
+                    accountId,
+                    dueDate,
+                    type: state.currentDebtType,
+                    settled: false
+                });
+            }
+
+            saveData();
+            closeModal('modalDebt');
+            document.getElementById('formDebt').reset();
+            setDefaultDates();
+        }
+
+        function settleDebt(id) {
+            const debt = state.debts.find(d => d.id === id);
+            if (!debt) return;
+
+            const account = state.accounts.find(a => a.id === debt.accountId) || state.accounts[0];
+            
+            if (debt.type === 'lend') {
+                account.balance = parseFloat(account.balance) + parseFloat(debt.amount);
+            } else {
+                account.balance = parseFloat(account.balance) - parseFloat(debt.amount);
+            }
+
+            debt.settled = true;
+            saveData();
+        }
+
+        function deleteDebt(id) {
+            const debt = state.debts.find(d => d.id === id);
+            if (!debt) return;
+
+            if (!debt.settled) {
+                const account = state.accounts.find(a => a.id === debt.accountId);
+                if (account) {
+                    if (debt.type === 'lend') {
+                        account.balance = parseFloat(account.balance) + parseFloat(debt.amount);
+                    } else {
+                        account.balance = parseFloat(account.balance) - parseFloat(debt.amount);
+                    }
+                }
+            }
+
+            state.debts = state.debts.filter(d => d.id !== id);
+            saveData();
+        }
+
+        // --- ANALYTICS & ADVANCED DRILL-DOWN HISTORY ---
+        function setAnalyticsTimeframe(tf) {
+            state.analyticsTimeframe = tf;
+            ['Daily', 'Monthly', 'Yearly'].forEach(t => {
+                const btn = document.getElementById(`btnAnalytic${t}`);
+                if (t.toLowerCase() === tf) {
+                    btn.className = "px-3 py-1.5 rounded-lg bg-white text-brand-900 shadow-sm transition";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-slate-600 transition";
+                }
+            });
+
+            const picker = document.getElementById('dailyDatePickerContainer');
+            if (tf === 'daily') {
+                picker.classList.remove('hidden');
+            } else {
+                picker.classList.add('hidden');
+            }
+
+            renderCharts();
+        }
+
+        function renderCharts() {
+            renderTimeframeDiagramAndDrilldown();
+
+            // Expenses Category Breakdown Chart
+            const catCtx = document.getElementById('categoryChart').getContext('2d');
+            const expenses = state.transactions.filter(t => t.type === 'expense');
+            const categories = {};
+
+            expenses.forEach(t => {
+                categories[t.category] = (categories[t.category] || 0) + parseFloat(t.amount);
+            });
+
+            const catLabels = Object.keys(categories);
+            const catData = Object.values(categories);
+
+            if (categoryChartInstance) categoryChartInstance.destroy();
+            categoryChartInstance = new Chart(catCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: catLabels.length ? catLabels : ['No Expenses'],
+                    datasets: [{
+                        data: catData.length ? catData : [1],
+                        backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+
+        function renderTimeframeDiagramAndDrilldown() {
+            const ctx = document.getElementById('timeframeChart').getContext('2d');
+            const tf = state.analyticsTimeframe;
+            const titleElem = document.getElementById('analyticsChartTitle');
+            const totalElem = document.getElementById('analyticsPeriodTotal');
+            const drilldownContainer = document.getElementById('analyticsDrilldownList');
+            const drilldownTitle = document.getElementById('analyticsDrilldownTitle');
+
+            let labels = [];
+            let expenseData = [];
+            let totalPeriodExpense = 0;
+            let totalPeriodIncome = 0;
+            let filteredDrilldownTxs = [];
+
+            const now = new Date();
+            const selectedDateVal = document.getElementById('analyticsExactDate').value;
+
+            if (tf === 'daily') {
+                const targetDate = selectedDateVal ? new Date(selectedDateVal) : now;
+                const formattedDateStr = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                
+                titleElem.textContent = `Daily Breakdown (${formattedDateStr})`;
+                drilldownTitle.textContent = `Itemized Activity for ${formattedDateStr}`;
+
+                labels = ['00:00', '06:00', '12:00', '18:00', '23:59'];
+                expenseData = [0, 0, 0, 0, 0];
+
+                filteredDrilldownTxs = state.transactions.filter(t => {
+                    const dt = new Date(t.date);
+                    return dt.toDateString() === targetDate.toDateString();
+                });
+
+                filteredDrilldownTxs.forEach(t => {
+                    const amt = parseFloat(t.amount);
+                    if (t.type === 'expense') totalPeriodExpense += amt;
+                    else totalPeriodIncome += amt;
+                });
+
+            } else if (tf === 'monthly') {
+                const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                titleElem.textContent = `Monthly Expense Diagram (${monthName})`;
+                drilldownTitle.textContent = `All Transactions in ${monthName}`;
+
+                const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                for (let d = 1; d <= daysInMonth; d++) {
+                    labels.push(`${d}`);
+                    let dayTotal = 0;
+                    state.transactions.forEach(t => {
+                        if (t.type === 'expense') {
+                            const dt = new Date(t.date);
+                            if (dt.getDate() === d && dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear()) {
+                                dayTotal += parseFloat(t.amount);
+                            }
+                        }
+                    });
+                    expenseData.push(dayTotal);
+                }
+
+                filteredDrilldownTxs = state.transactions.filter(t => {
+                    const dt = new Date(t.date);
+                    return dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear();
+                });
+
+                filteredDrilldownTxs.forEach(t => {
+                    const amt = parseFloat(t.amount);
+                    if (t.type === 'expense') totalPeriodExpense += amt;
+                    else totalPeriodIncome += amt;
+                });
+
+            } else if (tf === 'yearly') {
+                titleElem.textContent = `Yearly Summary Diagram (${now.getFullYear()})`;
+                drilldownTitle.textContent = `All Transactions in Year ${now.getFullYear()}`;
+                
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                labels = monthNames;
+
+                monthNames.forEach((m, idx) => {
+                    let monthTotal = 0;
+                    state.transactions.forEach(t => {
+                        if (t.type === 'expense') {
+                            const dt = new Date(t.date);
+                            if (dt.getMonth() === idx && dt.getFullYear() === now.getFullYear()) {
+                                monthTotal += parseFloat(t.amount);
+                            }
+                        }
+                    });
+                    expenseData.push(monthTotal);
+                });
+
+                filteredDrilldownTxs = state.transactions.filter(t => {
+                    const dt = new Date(t.date);
+                    return dt.getFullYear() === now.getFullYear();
+                });
+
+                filteredDrilldownTxs.forEach(t => {
+                    const amt = parseFloat(t.amount);
+                    if (t.type === 'expense') totalPeriodExpense += amt;
+                    else totalPeriodIncome += amt;
+                });
+            }
+
+            // Update Financial Stat Cards
+            document.getElementById('analyticsIncomeDisplay').textContent = `৳ ${totalPeriodIncome.toLocaleString()}`;
+            document.getElementById('analyticsExpenseDisplay').textContent = `৳ ${totalPeriodExpense.toLocaleString()}`;
+            
+            const netSavings = totalPeriodIncome - totalPeriodExpense;
+            const netElem = document.getElementById('analyticsNetDisplay');
+            netElem.textContent = `৳ ${netSavings.toLocaleString()}`;
+            netElem.className = netSavings < 0 ? "text-sm font-extrabold text-rose-700 mt-1" : "text-sm font-extrabold text-emerald-700 mt-1";
+
+            totalElem.textContent = `Spent: ৳${totalPeriodExpense.toLocaleString()}`;
+
+            // Render Itemized History List
+            if (filteredDrilldownTxs.length === 0) {
+                drilldownContainer.innerHTML = `<div class="text-center py-6 text-xs text-slate-400">No transactions for this timeframe.</div>`;
+            } else {
+                drilldownContainer.innerHTML = filteredDrilldownTxs.slice().reverse().map(tx => renderTxCardHTML(tx)).join('');
+            }
+            lucide.createIcons();
+
+            // Render Timeframe Chart
+            if (timeframeChartInstance) timeframeChartInstance.destroy();
+            timeframeChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Expense (৳)',
+                        data: expenseData,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#ef4444'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { ticks: { font: { size: 9 } } },
+                        x: { ticks: { font: { size: 9 } } }
+                    }
+                }
+            });
+        }
+
+        // --- UTILS & DRIVE ---
+        function toggleDriveModal() { document.getElementById('modalDrive').classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `mahinio_expense_backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function simulateDriveSync() {
+            const syncBtn = document.getElementById('syncStatus');
+            syncBtn.textContent = "Syncing...";
+            setTimeout(() => {
+                syncBtn.textContent = "Synced";
+                alert("Mahinio Data synced successfully to Cloud / Local Backup!");
+                closeModal('modalDrive');
+            }, 1200);
+        }
+    </script>
+</body>
+</html>
